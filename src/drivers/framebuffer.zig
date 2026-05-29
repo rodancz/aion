@@ -86,28 +86,20 @@ pub fn put_char(c: u8) void {
 
 fn scroll() void {
     if (!active) return;
-    // Fast scroll using 64-bit copies
-    const pixels_per_row = fb_rows * FONT_H;
+    // Copy rows up by FONT_H lines
     var y: usize = FONT_H;
-    while (y < pixels_per_row) : (y += 1) {
-        const row_offset = y * fb_pitch;
-        const dst_offset = (y - FONT_H) * fb_pitch;
+    while (y < fb_rows * FONT_H) : (y += 1) {
         var x: usize = 0;
-        while (x < fb_pitch) : (x += 4) {
-            const src: *volatile u64 = @ptrFromInt(@intFromPtr(&fb.?[x + row_offset]));
-            const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&fb.?[x + dst_offset]));
-            dst.* = src.*;
+        while (x < fb_pitch) : (x += 1) {
+            fb.?[x + (y - FONT_H) * fb_pitch] = fb.?[x + y * fb_pitch];
         }
     }
-    // Clear last FONT_H rows
-    const blank64: u64 = bg | (@as(u64, bg) << 32);
+    // Clear bottom FONT_H rows
     var y2: usize = (fb_rows - 1) * FONT_H;
     while (y2 < fb_rows * FONT_H) : (y2 += 1) {
-        const row_offset = y2 * fb_pitch;
         var x: usize = 0;
-        while (x < fb_pitch) : (x += 4) {
-            const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&fb.?[x + row_offset]));
-            dst.* = blank64;
+        while (x < fb_pitch) : (x += 1) {
+            fb.?[x + y2 * fb_pitch] = bg;
         }
     }
 }
