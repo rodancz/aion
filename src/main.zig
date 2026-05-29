@@ -38,13 +38,17 @@ export fn irq_handler(int_num: u64) void {
 extern var __kernel_start: u8;
 extern var __kernel_end: u8;
 
+fn write_prompt() void {
+    console.write_str(shell.get_prompt());
+}
+
 export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     // Earliest possible display: write directly to VGA buffer
     const VGA_BUFFER: [*]volatile u16 = @ptrFromInt(0xB8000);
-    VGA_BUFFER[0] = @as(u16, 'C') | (0x0F << 8);
-    VGA_BUFFER[1] = @as(u16, 'P') | (0x0F << 8);
-    VGA_BUFFER[2] = @as(u16, 'U') | (0x0F << 8);
-    VGA_BUFFER[3] = @as(u16, ' ') | (0x0F << 8);
+    VGA_BUFFER[0] = @as(u16, 'A') | (0x0F << 8);
+    VGA_BUFFER[1] = @as(u16, 'I') | (0x0F << 8);
+    VGA_BUFFER[2] = @as(u16, 'O') | (0x0F << 8);
+    VGA_BUFFER[3] = @as(u16, 'N') | (0x0F << 8);
 
     console.init();
     console.init_vga();
@@ -70,7 +74,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     }
 
     console.write_str("");
-    console.write_str("=== CPUMAIN v0.5.0 -- AI Self-Healing ===");
+    console.write_str("=== Aion v0.6.0 -- AI Self-Healing ===");
     console.write_str("");
     _ = magic;
 
@@ -149,7 +153,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     }
 
     // Layer 3
-    console.write_str("[L2] Starting...");
+    console.write_str("[L3] Starting...");
     l2.init();
 
     console.write_str("[BOOT] Unmask IRQ0/1/11...");
@@ -159,14 +163,14 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     console.write_str("[BOOT] STI...");
     asm_sti();
     console.write_str("");
+    shell.show_logo();
     console.write_str("System ready. Type 'help'.");
     console.write_str("");
 
     var prompt_needed = true;
     while (true) {
         if (prompt_needed) {
-            console.write_str(shell.get_prompt());
-            console.write_str(" > ");
+            write_prompt();
             prompt_needed = false;
         }
         asm_hlt();
@@ -188,6 +192,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
                     console.write_str("[WATCHDOG] AI rebuild complete. Restarting Layer 3...");
                     wd.reset();
                     l2.restart();
+                    prompt_needed = true;
                 }
             }
         }
@@ -195,8 +200,9 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
         // Keyboard input
         if (kbd.read_line()) |line| {
             if (line.len > 0) {
-                prompt_needed = shell.process(line);
+                _ = shell.process(line);
             }
+            prompt_needed = true;
         }
     }
 }

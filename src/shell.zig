@@ -13,12 +13,12 @@ pub fn process(line: []const u8) bool {
     if (line.len == 0) return true;
 
     if (str_eq(line, "help")) {
-        console.write_str("CPUMAIN AI OS  v0.6.0");
+        console.write_str("Aion AI OS  v0.6.0");
         console.write_str("");
         console.write_str("COMMANDS:");
         console.write_str("  help     this message");
         console.write_str("  info     system information");
-        console.write_str("  who      about CPUMAIN");
+        console.write_str("  who      about Aion");
         console.write_str("  crash    trigger Layer 3 crash (self-healing)");
         console.write_str("  mem      memory statistics");
         console.write_str("  rebuild  simulate AI kernel rebuild");
@@ -33,7 +33,7 @@ pub fn process(line: []const u8) bool {
         console.write_str("  logo     show boot logo");
         console.write_str("");
     } else if (str_eq(line, "info")) {
-        console.write_str("CPUMAIN AI OS -- System Status");
+        console.write_str("Aion AI OS -- System Status");
         console.write_str("  Version:  v0.6.0 (TCP + DHCP + AI API)");
         console.write_str("  Layer 3: ");
         if (wd.is_healthy()) {
@@ -49,7 +49,7 @@ pub fn process(line: []const u8) bool {
         }
         write_uptime();
     } else if (str_eq(line, "who")) {
-        console.write_str("CPUMAIN is a self-healing operating system.");
+        console.write_str("Aion is a self-healing operating system.");
         console.write_str("");
         console.write_str("Architecture:");
         console.write_str("  CPU -> Microkernel -> Layer 3 -> AI Daemon");
@@ -184,12 +184,13 @@ fn write_uptime() void {
     }
 }
 
-fn show_logo() void {
-    console.write_str("    ____  ____  _   _ ___  _    ____ ___  _   _");
-    console.write_str("   / ___||  _ \\| | | |   \\| |  / ___|_ _|| \\ | |");
-    console.write_str("  | |    | |_) | | | | |) | |  \\__ \\| | |  \\| |");
-    console.write_str("  | |___ |  __/| |_| |  _/| |__ __) | | | |\\  |");
-    console.write_str("   \\____||_|    \\___/|_|  |____|___/|___||_| \\_|");
+pub fn show_logo() void {
+    console.write_str("       █████╗ ██╗ ██████╗ ███╗  ██╗");
+    console.write_str("      ██╔══██╗██║██╔═══██╗████╗ ██║");
+    console.write_str("      ███████║██║██║   ██║██╔██╗██║");
+    console.write_str("      ██╔══██║██║██║   ██║██║╚████║");
+    console.write_str("      ██║  ██║██║╚██████╔╝██║ ╚███║");
+    console.write_str("      ╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝  ╚══╝");
     console.write_str("");
     console.write_str("     AI SELF-HEALING MICROKERNEL  v0.6.0");
     console.write_str("     CPU -> Microkernel -> Layer 3 -> AI");
@@ -240,7 +241,8 @@ fn do_cd(path: []const u8) void {
 }
 
 pub fn get_prompt() []const u8 {
-    return cwd;
+    _ = cwd;
+    return "~ > ";
 }
 
 fn trim(s: []const u8) []const u8 {

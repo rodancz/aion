@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) void {
     nasm_run.addFileArg(b.path("src/boot.asm"));
 
     const exe = b.addExecutable(.{
-        .name = "cpumain",
+        .name = "aion",
         .root_module = mod,
     });
 

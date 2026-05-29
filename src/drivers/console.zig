@@ -29,6 +29,10 @@ pub fn write_str(s: []const u8) void {
     write_byte('\n');
 }
 
+pub fn write_inline(s: []const u8) void {
+    for (s) |c| write_byte(c);
+}
+
 pub fn clear() void {
     fb.clear();
     if (use_vga) vga.clear();
