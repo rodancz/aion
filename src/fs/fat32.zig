@@ -12,27 +12,42 @@ var data_lba: u32 = 0;
 var mounted: bool = false;
 
 pub fn init() bool {
-    // Read MBR and find first partition
     var mbr: [512]u8 = [_]u8{0} ** 512;
     if (!ata.read_sector(0, @ptrCast(&mbr))) return false;
 
-    // Check partition table entries (at offset 446)
+    // Check partition table for FAT32 (types 0x0B, 0x0C, 0x0E)
     var pi: usize = 446;
     while (pi < 510) : (pi += 16) {
         const ptype = mbr[pi + 4];
         if (ptype == 0x0B or ptype == 0x0C or ptype == 0x0E) {
-            partition_lba = (@as(u32, mbr[pi + 8]) << 24) | (@as(u32, mbr[pi + 9]) << 16) | (@as(u32, mbr[pi + 10]) << 8) | mbr[pi + 11];
-            break;
+            const lba = (@as(u32, mbr[pi + 8]) << 24) | (@as(u32, mbr[pi + 9]) << 16) | (@as(u32, mbr[pi + 10]) << 8) | mbr[pi + 11];
+            if (try_mount(lba)) return true;
         }
     }
-    if (partition_lba == 0) {
-        // No partition table — try reading BPB from sector 0 (superfloppy)
-        partition_lba = 0;
-    }
 
-    // Read BPB
+    // Try AionOS data offset (sector 47248)
+    if (try_mount(47248)) return true;
+
+    // Try sector 0 (superfloppy)
+    if (try_mount(0)) return true;
+
+    console.write_str("[FAT] No FAT32 filesystem found");
+    return false;
+}
+
+fn try_mount(lba: u32) bool {
     var bpb: [512]u8 = [_]u8{0} ** 512;
-    if (!ata.read_sector(partition_lba, @ptrCast(&bpb))) return false;
+    if (!ata.read_sector(lba, @ptrCast(&bpb))) return false;
+
+    // Check boot signature
+    const sig = (@as(u16, bpb[510]) << 8) | bpb[511];
+    if (sig != 0xAA55) return false;
+
+    // Check it's FAT32 (root_dir_sectors must be 0 for FAT32)
+    const bytes_per_sec = (@as(u16, bpb[11]) << 8) | bpb[12];
+    if (bytes_per_sec != 512) return false;
+    const root_entries = (@as(u16, bpb[17]) << 8) | bpb[18];
+    if (root_entries != 0) return false; // Not FAT32
 
     sectors_per_cluster = bpb[13];
     reserved_sectors = (@as(u16, bpb[14]) << 8) | bpb[15];
@@ -40,9 +55,9 @@ pub fn init() bool {
     sectors_per_fat = (@as(u32, bpb[36]) << 24) | (@as(u32, bpb[37]) << 16) | (@as(u32, bpb[38]) << 8) | bpb[39];
     root_cluster = (@as(u32, bpb[44]) << 24) | (@as(u32, bpb[45]) << 16) | (@as(u32, bpb[46]) << 8) | bpb[47];
 
-    fat_lba = partition_lba + reserved_sectors;
+    partition_lba = lba;
+    fat_lba = lba + reserved_sectors;
     data_lba = fat_lba + @as(u32, num_fats) * sectors_per_fat;
-
     mounted = true;
     console.write_str("[FAT] Mounted");
     return true;
@@ -56,16 +71,12 @@ fn next_cluster(cluster: u32) u32 {
     const fat_offset = cluster * 4;
     const fat_sector = fat_lba + fat_offset / 512;
     const fat_entry_offset = fat_offset % 512;
-
     var fat_buf: [512]u8 = [_]u8{0} ** 512;
     if (!ata.read_sector(fat_sector, @ptrCast(&fat_buf))) return 0x0FFFFFFF;
-
-    const entry = (@as(u32, fat_buf[fat_entry_offset + 3]) << 24) |
+    return ((@as(u32, fat_buf[fat_entry_offset + 3]) << 24) |
         (@as(u32, fat_buf[fat_entry_offset + 2]) << 16) |
         (@as(u32, fat_buf[fat_entry_offset + 1]) << 8) |
-        fat_buf[fat_entry_offset];
-
-    return entry & 0x0FFFFFFF;
+        fat_buf[fat_entry_offset]) & 0x0FFFFFFF;
 }
 
 pub fn list_root(out: []u8) usize {
@@ -76,44 +87,34 @@ pub fn list_root(out: []u8) usize {
 fn read_dir(cluster: u32, out: []u8) usize {
     var current = cluster;
     var pos: usize = 0;
-
     while (current < 0x0FFFFFF8) {
         const lba = cluster_to_lba(current);
         var s: u8 = 0;
         while (s < sectors_per_cluster) : (s += 1) {
             var sector: [512]u8 = [_]u8{0} ** 512;
             _ = ata.read_sector(lba + s, @ptrCast(&sector));
-
             var ei: usize = 0;
             while (ei < 512) : (ei += 32) {
-                const first_byte = sector[ei];
-                if (first_byte == 0) return pos; // end of directory
-                if (first_byte == 0xE5 or first_byte == '.') continue; // deleted or dot entries
-                if ((sector[ei + 11] & 0x08) != 0) continue; // volume label
-                if ((sector[ei + 11] & 0x10) != 0) continue; // directory (skip for now)
+                if (sector[ei] == 0) return pos;
+                if (sector[ei] == 0xE5) continue;
+                if ((sector[ei + 11] & 0x08) != 0) continue;
+                if ((sector[ei + 11] & 0x10) != 0) continue;
+                if (sector[ei] == '.') continue;
 
-                // Get filename (8 chars + 3 chars extension)
-                var name_len: usize = 0;
                 var ni: usize = 0;
                 while (ni < 8 and sector[ei + ni] != ' ' and sector[ei + ni] != 0) : (ni += 1) {
-                    if (pos + name_len < out.len) {
-                        out[pos + name_len] = sector[ei + ni];
-                    }
-                    name_len += 1;
+                    if (pos < out.len) out[pos] = sector[ei + ni];
+                    pos += 1;
                 }
-                // Extension
                 if (sector[ei + 8] != ' ') {
-                    if (pos + name_len < out.len) out[pos + name_len] = '.';
-                    name_len += 1;
+                    if (pos < out.len) out[pos] = '.'; pos += 1;
                     ni = 8;
                     while (ni < 11 and sector[ei + ni] != ' ' and sector[ei + ni] != 0) : (ni += 1) {
-                        if (pos + name_len < out.len) out[pos + name_len] = sector[ei + ni];
-                        name_len += 1;
+                        if (pos < out.len) out[pos] = sector[ei + ni];
+                        pos += 1;
                     }
                 }
-                if (pos + name_len < out.len) { out[pos + name_len] = ' '; }
-                name_len += 1;
-                pos += name_len;
+                if (pos < out.len) out[pos] = ' '; pos += 1;
             }
         }
         current = next_cluster(current);
@@ -123,8 +124,6 @@ fn read_dir(cluster: u32, out: []u8) usize {
 
 pub fn read_file(name: []const u8, out: []u8) usize {
     if (!mounted) return 0;
-
-    // Search root directory for file
     var current = root_cluster;
     while (current < 0x0FFFFFF8) {
         const lba = cluster_to_lba(current);
@@ -132,32 +131,23 @@ pub fn read_file(name: []const u8, out: []u8) usize {
         while (s < sectors_per_cluster) : (s += 1) {
             var sector: [512]u8 = [_]u8{0} ** 512;
             _ = ata.read_sector(lba + s, @ptrCast(&sector));
-
             var ei: usize = 0;
             while (ei < 512) : (ei += 32) {
                 if (sector[ei] == 0) return 0;
                 if (sector[ei] == 0xE5) continue;
                 if ((sector[ei + 11] & 0x10) != 0) continue;
 
-                // Compare name
-                var name_buf: [12]u8 = undefined;
-                var ni: usize = 0;
+                var fn_buf: [13]u8 = undefined;
+                var fni: usize = 0;
                 var di: usize = 0;
-                while (di < 8 and sector[ei + di] != ' ' and sector[ei + di] != 0) : (di += 1) {
-                    name_buf[ni] = sector[ei + di]; ni += 1;
-                }
+                while (di < 8 and sector[ei + di] != ' ' and sector[ei + di] != 0) : (di += 1) { fn_buf[fni] = sector[ei + di]; fni += 1; }
                 if (sector[ei + 8] != ' ') {
-                    name_buf[ni] = '.'; ni += 1;
+                    fn_buf[fni] = '.'; fni += 1;
                     di = 8;
-                    while (di < 11 and sector[ei + di] != ' ' and sector[ei + di] != 0) : (di += 1) {
-                        name_buf[ni] = sector[ei + di]; ni += 1;
-                    }
+                    while (di < 11 and sector[ei + di] != ' ' and sector[ei + di] != 0) : (di += 1) { fn_buf[fni] = sector[ei + di]; fni += 1; }
                 }
-                name_buf[ni] = 0;
+                if (!str_eq(fn_buf[0..fni], name)) continue;
 
-                if (!str_eq(name_buf[0..ni], name)) continue;
-
-                // Found file — read clusters
                 const file_cluster = (@as(u32, sector[ei + 20]) << 16) | (@as(u32, sector[ei + 26]) << 8) | sector[ei + 27];
                 const file_size = (@as(u32, sector[ei + 28]) << 24) | (@as(u32, sector[ei + 29]) << 16) | (@as(u32, sector[ei + 30]) << 8) | sector[ei + 31];
 
@@ -171,9 +161,7 @@ pub fn read_file(name: []const u8, out: []u8) usize {
                         _ = ata.read_sector(clba + cs, @ptrCast(&data));
                         const to_copy: usize = if (file_size - out_pos < 512) file_size - out_pos else 512;
                         var j: usize = 0;
-                        while (j < to_copy and out_pos + j < out.len) : (j += 1) {
-                            out[out_pos + j] = data[j];
-                        }
+                        while (j < to_copy and out_pos + j < out.len) : (j += 1) out[out_pos + j] = data[j];
                         out_pos += to_copy;
                     }
                     fc = next_cluster(fc);
