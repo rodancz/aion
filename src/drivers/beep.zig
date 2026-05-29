@@ -2,7 +2,7 @@ const port = @import("../arch/x86_64/port.zig");
 
 pub fn beep(freq: u16, duration_ms: u16) void {
     if (freq == 0) return;
-    const div: u16 = @truncate(1193180 / freq);
+    const div: u32 = 1193180 / @as(u32, freq);
     port.outb(0x43, 0xB6);
     port.outb(0x42, @truncate(div));
     port.outb(0x42, @truncate(div >> 8));
