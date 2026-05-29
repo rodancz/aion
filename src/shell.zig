@@ -268,11 +268,20 @@ pub fn test_tls() void {
 }
 
 pub fn test_network() void {
+    const http_n = @import("net/http.zig");
     const dns_n = @import("net/dns.zig");
-    console.write_str("[TEST] DNS: resolving httpbin.org...");
+
+    console.write_str("[TEST] DNS resolve httpbin.org...");
     if (dns_n.resolve("httpbin.org")) |_ip| {
         _ = _ip;
-        console.write_str("[TEST] DNS OK");
+        console.write_str("[TEST] DNS OK, trying HTTP...");
+        var resp_buf: [4096]u8 = undefined;
+        if (http_n.get_json("httpbin.org", 80, "/get", resp_buf[0..])) |_len| {
+            _ = _len;
+            console.write_str("[TEST] HTTP OK!");
+        } else {
+            console.write_str("[TEST] HTTP failed");
+        }
     } else {
         console.write_str("[TEST] DNS failed");
     }
