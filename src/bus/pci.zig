@@ -64,13 +64,15 @@ pub fn scan() ?PCIDevice {
         if (class_code == 0x02 and subclass == 0x00) {
             const bar0 = read32(0, dev, 0, 0x10);
             const bar1 = read32(0, dev, 0, 0x14);
-
-            return PCIDevice{
-                .bus = 0, .device = dev, .function = 0,
-                .vendor_id = vendor, .device_id = device_id,
-                .class_code = class_code, .subclass = subclass,
-                .bar0 = bar0, .bar1 = bar1,
-            };
+            // Accept Intel e1000 (8086), e1000e (8086), I219 (8086), and others
+            if (vendor == 0x8086) {
+                return PCIDevice{
+                    .bus = 0, .device = dev, .function = 0,
+                    .vendor_id = vendor, .device_id = device_id,
+                    .class_code = class_code, .subclass = subclass,
+                    .bar0 = bar0, .bar1 = bar1,
+                };
+            }
         }
     }
     return null;

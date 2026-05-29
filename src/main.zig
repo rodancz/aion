@@ -26,6 +26,7 @@ const dhcp = @import("net/dhcp.zig");
 const vfs = @import("fs/vfs.zig");
 const ata = @import("drivers/ata.zig");
 const fat32 = @import("fs/fat32.zig");
+const beep = @import("drivers/beep.zig");
 const _unused_isr = isr;
 
 var net_ready: bool = false;
@@ -172,9 +173,11 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     pic.unmask(11); // e1000 typically IRQ 11
     console.write_str("[BOOT] STI...");
     asm_sti();
+    beep.boot_chime();
     console.clear();
     shell.show_logo();
     console.write_str("System ready. Type 'help'.");
+    console.write_str("");
 
     // Arm watchdog now that Layer 3 is running
     wd.arm();
