@@ -6,7 +6,7 @@ var cursor_x: usize = 0;
 var cursor_y: usize = 0;
 var color: u8 = 0x0F;
 
-fn entry_at(x: usize, y: usize) usize {
+inline fn entry_at(x: usize, y: usize) usize {
     return y * VGA_WIDTH + x;
 }
 
@@ -28,17 +28,21 @@ pub fn clear() void {
 }
 
 fn scroll() void {
-    var y: usize = 0;
-    while (y < VGA_HEIGHT - 1) : (y += 1) {
-        var x: usize = 0;
-        while (x < VGA_WIDTH) : (x += 1) {
-            VGA_BUFFER[entry_at(x, y)] = VGA_BUFFER[entry_at(x, y + 1)];
-        }
+    // Fast scroll using 64-bit copies (8 chars at a time)
+    const total_words = VGA_WIDTH * (VGA_HEIGHT - 1);
+    var i: usize = 0;
+    while (i < total_words) : (i += 4) {
+        const src: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[VGA_WIDTH + i]));
+        const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[i]));
+        dst.* = src.*;
     }
+    // Clear last line
     const blank = @as(u16, 0x20) | (@as(u16, color) << 8);
-    var x: usize = 0;
-    while (x < VGA_WIDTH) : (x += 1) {
-        VGA_BUFFER[entry_at(x, VGA_HEIGHT - 1)] = blank;
+    const blank64 = (@as(u64, blank) << 48) | (@as(u64, blank) << 32) | (@as(u64, blank) << 16) | blank;
+    i = VGA_WIDTH * (VGA_HEIGHT - 1);
+    while (i < VGA_WIDTH * VGA_HEIGHT) : (i += 4) {
+        const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[i]));
+        dst.* = blank64;
     }
 }
 
@@ -64,7 +68,5 @@ pub fn put_char(c: u8) void {
 }
 
 pub fn write_str(s: []const u8) void {
-    for (s) |c| {
-        put_char(c);
-    }
+    for (s) |c| put_char(c);
 }
