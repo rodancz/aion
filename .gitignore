@@ -1,0 +1,9 @@
+zig-out/
+zig-cache/
+.cache/
+*.iso
+*.o
+.vscode/
+.DS_Store
+*.pcap
+/iso/boot/cpumain
