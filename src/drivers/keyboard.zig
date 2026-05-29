@@ -67,6 +67,10 @@ pub fn read_line() ?[]const u8 {
     return line_buf[0..len];
 }
 
+pub fn read_line_editor() ?[]const u8 {
+    return read_line();
+}
+
 pub fn get_char() ?u8 {
     if (buf_head == buf_tail) return null;
     const c = buf[buf_tail];

@@ -23,6 +23,7 @@ const arp = @import("net/arp.zig");
 const udp = @import("net/udp.zig");
 const tcp = @import("net/tcp.zig");
 const dhcp = @import("net/dhcp.zig");
+const vfs = @import("fs/vfs.zig");
 const _unused_isr = isr;
 
 var net_ready: bool = false;
@@ -74,7 +75,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     }
 
     console.write_str("");
-    console.write_str("=== Aion v0.6.0 -- AI Self-Healing ===");
+    console.write_str("=== AionOS v0.1.0-alpha ===");
     console.write_str("");
     _ = magic;
 
@@ -155,6 +156,9 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     // Layer 3
     console.write_str("[L3] Starting...");
     l2.init();
+
+    // Virtual filesystem
+    vfs.init();
 
     console.write_str("[BOOT] Unmask IRQ0/1/11...");
     pic.unmask(0);
