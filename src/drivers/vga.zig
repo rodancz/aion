@@ -6,10 +6,6 @@ var cursor_x: usize = 0;
 var cursor_y: usize = 0;
 var color: u8 = 0x0F;
 
-inline fn entry_at(x: usize, y: usize) usize {
-    return y * VGA_WIDTH + x;
-}
-
 pub fn init() void {
     cursor_x = 0;
     cursor_y = 0;
@@ -27,25 +23,6 @@ pub fn clear() void {
     cursor_y = 0;
 }
 
-fn scroll() void {
-    // Fast scroll using 64-bit copies (8 chars at a time)
-    const total_words = VGA_WIDTH * (VGA_HEIGHT - 1);
-    var i: usize = 0;
-    while (i < total_words) : (i += 4) {
-        const src: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[VGA_WIDTH + i]));
-        const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[i]));
-        dst.* = src.*;
-    }
-    // Clear last line
-    const blank = @as(u16, 0x20) | (@as(u16, color) << 8);
-    const blank64 = (@as(u64, blank) << 48) | (@as(u64, blank) << 32) | (@as(u64, blank) << 16) | blank;
-    i = VGA_WIDTH * (VGA_HEIGHT - 1);
-    while (i < VGA_WIDTH * VGA_HEIGHT) : (i += 4) {
-        const dst: *volatile u64 = @ptrFromInt(@intFromPtr(&VGA_BUFFER[i]));
-        dst.* = blank64;
-    }
-}
-
 pub fn put_char(c: u8) void {
     if (c == '\n') {
         cursor_x = 0;
@@ -53,7 +30,7 @@ pub fn put_char(c: u8) void {
     } else if (c == '\r') {
         cursor_x = 0;
     } else {
-        VGA_BUFFER[entry_at(cursor_x, cursor_y)] = @as(u16, c) | (@as(u16, color) << 8);
+        VGA_BUFFER[cursor_y * VGA_WIDTH + cursor_x] = @as(u16, c) | (@as(u16, color) << 8);
         cursor_x += 1;
     }
 
@@ -62,7 +39,22 @@ pub fn put_char(c: u8) void {
         cursor_y += 1;
     }
     if (cursor_y >= VGA_HEIGHT) {
-        scroll();
+        // Fast scroll: copy line 1->0, 2->1, etc using row-level copy
+        var y: usize = 0;
+        const line_size = VGA_WIDTH;
+        while (y < VGA_HEIGHT - 1) : (y += 1) {
+            const src = y + 1;
+            var x: usize = 0;
+            while (x < line_size) : (x += 1) {
+                VGA_BUFFER[y * line_size + x] = VGA_BUFFER[src * line_size + x];
+            }
+        }
+        // Clear last line
+        const blank = @as(u16, 0x20) | (@as(u16, color) << 8);
+        var x: usize = 0;
+        while (x < line_size) : (x += 1) {
+            VGA_BUFFER[(VGA_HEIGHT - 1) * line_size + x] = blank;
+        }
         cursor_y = VGA_HEIGHT - 1;
     }
 }

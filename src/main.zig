@@ -172,6 +172,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     pic.unmask(11); // e1000 typically IRQ 11
     console.write_str("[BOOT] STI...");
     asm_sti();
+    console.clear();
     console.write_str("");
     shell.show_logo();
     console.write_str("System ready. Type 'help'.");
