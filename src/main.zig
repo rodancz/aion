@@ -175,7 +175,9 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     console.write_str("");
     shell.show_logo();
     console.write_str("System ready. Type 'help'.");
-    console.write_str("");
+
+    // Reset watchdog — ignore ticks accumulated during boot
+    wd.reset_ticks();
 
     var prompt_needed = true;
     while (true) {

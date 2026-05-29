@@ -377,17 +377,36 @@ fn do_storage() void {
     console.write_str("=== Persistent Storage (FAT32) ===");
     var buf: [512]u8 = undefined;
     const len = fat32.list_root(buf[0..]);
-    var printed: usize = 0;
-    var i: usize = 0;
-    while (i < len) : (i += 1) {
-        if (buf[i] == ' ') {
-            if (printed > 0) console.write_str("");
-            printed = 0;
-        } else {
-            printed += 1;
+    if (len == 0) {
+        console.write_str("  (empty)");
+    } else {
+        // Print space-separated filenames
+        var i: usize = 0;
+        while (i < len) {
+            // Skip spaces
+            while (i < len and buf[i] == ' ') : (i += 1) {}
+            if (i >= len) break;
+            // Print filename
+            var name_buf: [64]u8 = undefined;
+            var ni: usize = 0;
+            while (i < len and buf[i] != ' ' and ni < 63) : (i += 1) {
+                name_buf[ni] = buf[i]; ni += 1;
+            }
+            console.write_str("  ");
+            // Read file and show size
+            if (ni > 0) {
+                var fbuf: [4096]u8 = undefined;
+                _ = fat32.read_file(name_buf[0..ni], fbuf[0..]);
+                var out: [128]u8 = undefined;
+                var oi: usize = 0;
+                var j: usize = 0;
+                while (j < ni and oi < 120) : (j += 1) { out[oi] = name_buf[j]; oi += 1; }
+                out[oi] = 0;
+                console.write_str("  ");
+            }
         }
+        console.write_str("");
     }
-    console.write_str("");
 }
 
 fn parse_usize(s: []const u8) usize {

@@ -29,6 +29,10 @@ pub fn layer3_beat() void {
     ticks_since_heartbeat = 0;
 }
 
+pub fn reset_ticks() void {
+    ticks_since_heartbeat = 0;
+}
+
 pub fn tick() void {
     ticks_since_heartbeat += 1;
 
