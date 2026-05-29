@@ -177,8 +177,8 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
     shell.show_logo();
     console.write_str("System ready. Type 'help'.");
 
-    // Reset watchdog — ignore ticks accumulated during boot
-    wd.reset_ticks();
+    // Arm watchdog now that Layer 3 is running
+    wd.arm();
 
     var prompt_needed = true;
     while (true) {

@@ -6,12 +6,30 @@ var ticks_since_heartbeat: u64 = 0;
 var crash_count: u64 = 0;
 var layer3_crashed: bool = false;
 var crash_ticks: u64 = 0;
+var armed: bool = false;
 var l2_zone_start: usize = 0;
 var l2_zone_end: usize = 0;
 var ai_inbox: ?*ipc.Queue = null;
 
-pub fn set_ai_queue(q: *ipc.Queue) void {
-    ai_inbox = q;
+pub fn tick() void {
+    if (!armed) return;
+    ticks_since_heartbeat += 1;
+
+    if (layer3_crashed) {
+        crash_ticks += 1;
+        return;
+    }
+
+    if (ticks_since_heartbeat > 200) {
+        console.write_str("WATCHDOG: heartbeat timeout - Layer 3 dead");
+        layer3_crashed = true;
+        crash_ticks = 0;
+    }
+}
+
+pub fn arm() void {
+    armed = true;
+    ticks_since_heartbeat = 0;
 }
 
 pub fn set_zone(start: usize, end: usize) void {
@@ -31,22 +49,6 @@ pub fn layer3_beat() void {
 
 pub fn reset_ticks() void {
     ticks_since_heartbeat = 0;
-}
-
-pub fn tick() void {
-    ticks_since_heartbeat += 1;
-
-    if (layer3_crashed) {
-        crash_ticks += 1;
-        return;
-    }
-
-    if (ticks_since_heartbeat > 200) {
-        console.write_str("WATCHDOG: heartbeat timeout - Layer 3 dead");
-        layer3_crashed = true;
-        crash_ticks = 0;
-        ticks_since_heartbeat = 0; // Reset heartbeat counter on crash
-    }
 }
 
 pub fn report_crash(reason: []const u8) void {
