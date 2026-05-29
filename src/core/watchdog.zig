@@ -11,6 +11,10 @@ var l2_zone_start: usize = 0;
 var l2_zone_end: usize = 0;
 var ai_inbox: ?*ipc.Queue = null;
 
+pub fn set_ai_queue(q: *ipc.Queue) void {
+    ai_inbox = q;
+}
+
 pub fn tick() void {
     if (!armed) return;
     ticks_since_heartbeat += 1;
