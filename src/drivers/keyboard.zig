@@ -11,19 +11,15 @@ var buf_tail: usize = 0;
 var line_ready: bool = false;
 var line_buf: [BUF_SIZE]u8 = [_]u8{0} ** BUF_SIZE;
 var line_len: usize = 0;
+var last_poll: u64 = 0;
 
-pub fn handle_irq() void {
-    poll();
-}
+pub fn handle_irq() void { poll(); }
 
 pub fn poll() void {
     const status = port.inb(KBD_STATUS);
     if ((status & 1) == 0) return;
-
     const sc = port.inb(KBD_DATA);
-
     if (sc & 0x80 != 0) return;
-
     const c = translate(sc);
     if (c == 0) return;
 

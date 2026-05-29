@@ -6,6 +6,10 @@ var cursor_x: usize = 0;
 var cursor_y: usize = 0;
 var color: u8 = 0x0F;
 
+pub fn set_color(fg: u8, bg: u8) void {
+    color = ((bg & 0x0F) << 4) | (fg & 0x0F);
+}
+
 pub fn init() void {
     cursor_x = 0;
     cursor_y = 0;
