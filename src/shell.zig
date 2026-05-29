@@ -5,6 +5,7 @@ const udp = @import("net/udp.zig");
 const aidaemon = @import("ai/daemon.zig");
 const l2 = @import("layer2.zig");
 const vfs = @import("fs/vfs.zig");
+const fat32 = @import("fs/fat32.zig");
 const kbd = @import("drivers/keyboard.zig");
 
 var cwd: []const u8 = "/";
@@ -99,6 +100,8 @@ pub fn process(line: []const u8) bool {
         do_rm(line[3..]);
     } else if (str_starts_with(line, "edit ")) {
         do_edit(line[5..]);
+    } else if (str_eq(line, "storage")) {
+        do_storage();
     } else if (str_eq(line, "ai")) {
         if (aidaemon.config.enabled) {
             console.write_str("AI: Configured");
@@ -370,13 +373,20 @@ fn insert_line(data: []u8, len: usize, at: usize, line: []const u8) usize {
     return append_line(data, len, line);
 }
 
-fn write_num(n: usize) void {
-    if (n == 0) { console.write_str("0"); return; }
-    var buf: [20]u8 = undefined;
+fn do_storage() void {
+    console.write_str("=== Persistent Storage (FAT32) ===");
+    var buf: [512]u8 = undefined;
+    const len = fat32.list_root(buf[0..]);
+    var printed: usize = 0;
     var i: usize = 0;
-    var v = n;
-    while (v > 0) : (v /= 10) { buf[i] = @as(u8, @truncate(v % 10)) + '0'; i += 1; }
-    while (i > 0) { i -= 1; console.write_inline(buf[i..i+1]); }
+    while (i < len) : (i += 1) {
+        if (buf[i] == ' ') {
+            if (printed > 0) console.write_str("");
+            printed = 0;
+        } else {
+            printed += 1;
+        }
+    }
     console.write_str("");
 }
 
@@ -386,6 +396,16 @@ fn parse_usize(s: []const u8) usize {
         if (c >= '0' and c <= '9') v = v * 10 + (c - '0');
     }
     return v;
+}
+
+fn write_num(n: usize) void {
+    if (n == 0) { console.write_str("0"); return; }
+    var buf: [20]u8 = undefined;
+    var i: usize = 0;
+    var v = n;
+    while (v > 0) : (v /= 10) { buf[i] = @as(u8, @truncate(v % 10)) + '0'; i += 1; }
+    while (i > 0) { i -= 1; console.write_inline(buf[i..i+1]); }
+    console.write_str("");
 }
 
 fn set_ip(args: []const u8) void {

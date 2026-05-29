@@ -134,6 +134,20 @@ asm_inl:
     in eax, dx
     ret
 
+global asm_outw
+asm_outw:
+    mov dx, di
+    mov ax, si
+    out dx, ax
+    ret
+
+global asm_inw
+asm_inw:
+    mov dx, di
+    in ax, dx
+    movzx eax, ax
+    ret
+
 global asm_lgdt
 asm_lgdt:
     lgdt [rdi]

@@ -24,6 +24,8 @@ const udp = @import("net/udp.zig");
 const tcp = @import("net/tcp.zig");
 const dhcp = @import("net/dhcp.zig");
 const vfs = @import("fs/vfs.zig");
+const ata = @import("drivers/ata.zig");
+const fat32 = @import("fs/fat32.zig");
 const _unused_isr = isr;
 
 var net_ready: bool = false;
@@ -159,6 +161,10 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
 
     // Virtual filesystem
     vfs.init();
+
+    // ATA disk driver
+    _ = ata.init();
+    _ = fat32.init();
 
     console.write_str("[BOOT] Unmask IRQ0/1/11...");
     pic.unmask(0);
