@@ -45,17 +45,36 @@ pub fn init(bar0: u32, bar1: u32) bool {
     _ = bar1;
     mmio_base = bar0 & 0xFFFFFFF0;
 
-    reg_write(REG_CTRL, (1 << 26));
-    var rst_timeout: u32 = 100000;
-    while ((reg_read(REG_CTRL) & (1 << 26)) != 0 and rst_timeout > 0) : (rst_timeout -= 1) {}
+    // Disable PHY power management for I219 and similar
+    reg_write(0x0010, 0); // Clear FCT (Flow Control Type)
+    reg_write(0x0028, 0); // Clear FCTTV
+    reg_write(0x0F10, 0); // Clear KABGTXD
 
+    // Reset device
+    reg_write(REG_CTRL, (1 << 26));
+    var rst_timeout: u32 = 200000;
+    while ((reg_read(REG_CTRL) & (1 << 26)) != 0 and rst_timeout > 0) : (rst_timeout -= 1) {}
+    if (rst_timeout == 0) return false;
+
+    // Set link up + auto-speed detect + clear power down
     var ctrl = reg_read(REG_CTRL);
-    ctrl |= (1 << 5) | (1 << 6);
+    ctrl |= (1 << 5) | (1 << 6) | (1 << 30); // SLU + ASDE + clear PHY RST
+    ctrl &= ~@as(u32, (1 << 11)); // Clear PHY power down
     reg_write(REG_CTRL, ctrl);
 
-    var link_timeout: u32 = 500000;
+    // Wait for link (longer timeout for I219)
+    var link_timeout: u32 = 800000;
     while ((reg_read(REG_STATUS) & (1 << 1)) == 0 and link_timeout > 0) : (link_timeout -= 1) {}
-    if (link_timeout == 0) return false;
+    if (link_timeout == 0) {
+        // Retry once
+        ctrl = reg_read(REG_CTRL);
+        ctrl |= (1 << 5) | (1 << 6);
+        ctrl &= ~@as(u32, (1 << 11));
+        reg_write(REG_CTRL, ctrl);
+        link_timeout = 800000;
+        while ((reg_read(REG_STATUS) & (1 << 1)) == 0 and link_timeout > 0) : (link_timeout -= 1) {}
+        if (link_timeout == 0) return false;
+    }
 
     const status = reg_read(REG_STATUS);
     _ = status;

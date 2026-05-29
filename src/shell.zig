@@ -27,6 +27,7 @@ pub fn process(line: []const u8) bool {
     else if (str_eq(line, "ai")) { do_ai(); }
     else if (str_eq(line, "ver")) { console.write_str("AionOS v0.1.0-alpha"); }
     else if (str_eq(line, "reboot")) { do_reboot(); }
+    else if (str_eq(line, "pci")) { do_pci(); }
     else if (str_starts_with(line, "ip ")) { set_ip(line[3..]); }
     else if (str_starts_with(line, "echo ")) { console.write_str(line[5..]); }
     else if (str_eq(line, "ls") or str_eq(line, "dir")) { do_ls(); }
@@ -65,6 +66,11 @@ fn do_info() bool {
     console.write_str("  Watchdog: Armed (100Hz)");
     if (dhcp.config.configured) console.write_str("  DHCP:     Configured") else console.write_str("  DHCP:     Not configured");
     return true;
+}
+fn do_pci() void {
+    const pci_mod = @import("bus/pci.zig");
+    const count = pci_mod.scan_all();
+    if (count > 0) console.write_str("PCI devices found") else console.write_str("No PCI devices");
 }
 fn do_who() bool {
     console.write_str("AionOS — AI self-healing microkernel.");

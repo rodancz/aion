@@ -15,7 +15,7 @@ pub const PCIDevice = struct {
     bar1: u32,
 };
 
-fn read32(bus: u8, device: u8, func: u8, offset: u8) u32 {
+pub fn read32(bus: u8, device: u8, func: u8, offset: u8) u32 {
     const addr: u32 = (@as(u32, 1) << 31) |
         (@as(u32, bus) << 16) |
         (@as(u32, device) << 11) |
@@ -25,7 +25,7 @@ fn read32(bus: u8, device: u8, func: u8, offset: u8) u32 {
     return port.inl(PCI_DATA);
 }
 
-fn read16(bus: u8, device: u8, func: u8, offset: u8) u16 {
+pub fn read16(bus: u8, device: u8, func: u8, offset: u8) u16 {
     return @truncate(read32(bus, device, func, offset) >> @as(u5, @truncate((offset & 2) * 8)));
 }
 
@@ -48,6 +48,17 @@ pub fn enable_device(dev: PCIDevice) void {
     var cmd = read16(dev.bus, dev.device, dev.function, 4);
     cmd |= (1 << 2) | (1 << 1);
     write16(dev.bus, dev.device, dev.function, 4, cmd);
+}
+
+pub fn scan_all() u8 {
+    var dev: u8 = 0;
+    var found: u8 = 0;
+    while (dev < 32) : (dev += 1) {
+        const vendor = read16(0, dev, 0, 0);
+        if (vendor == 0xFFFF) continue;
+        found += 1;
+    }
+    return found;
 }
 
 pub fn scan() ?PCIDevice {
