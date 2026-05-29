@@ -44,10 +44,20 @@ pub fn resolve(hostname: []const u8) ?u32 {
         if (udp.receive(rx_buf[0..])) |rx| {
             if (rx.src_port != 53) continue;
 
-            // Parse DNS response
-            if (rx.len < 12) continue;
-            const flags = (@as(u16, rx_buf[2]) << 8) | rx_buf[3];
-            if ((flags & 0x8000) == 0) continue; // not response
+            // Debug: dump response header
+            const rflags = (@as(u16, rx_buf[2]) << 8) | rx_buf[3];
+            const ancount = (@as(u16, rx_buf[6]) << 8) | rx_buf[7];
+
+            if ((rflags & 0x8000) == 0) {
+                console.write_str("[DNS] not a response");
+                continue;
+            }
+            if (ancount == 0) {
+                console.write_str("[DNS] no answers");
+                return null;
+            }
+
+            console.write_str("[DNS] parsing answer...");
 
             // Skip question section
             var ai: usize = 12;
