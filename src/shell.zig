@@ -131,7 +131,7 @@ fn do_modules() void {
 fn do_who() bool {
     console.write_str("AionOS — AI self-healing microkernel.");
     console.write_str("CPU -> Microkernel -> Layer 3 -> AI Daemon");
-    console.write_str("Layer 3 crashes trigger AI analysis + hot-patch.");
+    console.write_str("Layer 3 crashes trigger AI classification + module swap.");
     console.write_str("Alpha release. Built by anon.");
     return true;
 }

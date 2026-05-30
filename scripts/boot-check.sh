@@ -1,5 +1,5 @@
 #!/bin/bash
-# Smoke test: builds AionOS, boots in QEMU, verifies shell prompt appears
+# Boot check: builds AionOS, boots in QEMU, verifies shell prompt appears
 set -e
 cd "$(dirname "$0")/.."
 
@@ -10,7 +10,7 @@ NC='\033[0m'
 BOOT_TIMEOUT=30
 BOOT_MARKER="System ready"
 
-echo "=== Smoke Test: AionOS Boot ==="
+echo "=== Boot Check: AionOS ==="
 
 # Step 1: Build
 echo -n "[1/4] Building kernel... "
@@ -60,13 +60,13 @@ wait $QEMU_PID 2>/dev/null || true
 if [ "$FOUND" -eq 1 ]; then
     echo -e "${GREEN}OK${NC}"
     echo ""
-    echo "=== PASS: AionOS booted to shell ==="
+    echo "=== OK: AionOS booted to shell ==="
     rm -f "$QEMU_LOG"
     exit 0
 else
     echo -e "${RED}FAIL${NC}"
     echo ""
-    echo "=== FAIL: Boot marker not found in ${BOOT_TIMEOUT}s ==="
+    echo "=== FAIL: Boot did not complete in ${BOOT_TIMEOUT}s ==="
     echo ""
     echo "Last 20 lines of QEMU output:"
     tail -20 "$QEMU_LOG"

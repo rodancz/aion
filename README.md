@@ -17,7 +17,7 @@ and the kernel swaps in a working module. No reboot needed.
 ## Proof it works
 
 ```bash
-./scripts/smoke-boot.sh   # Builds, boots in QEMU, confirms shell appears
+./scripts/boot-check.sh    # Builds, boots in QEMU, confirms shell appears
 ```
 
 In the QEMU shell, try this:
