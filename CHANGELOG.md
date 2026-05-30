@@ -2,21 +2,32 @@
 
 ## v0.1.1-alpha (2026-05-30)
 
-### Self-healing (real, not fake)
-- AI daemon now **classifies** crashes into 4 safe recovery actions instead of pretending to generate patches
-- **Module replacement** — Layer 3 v1 (crashable) auto-swaps to v2 (crash-resistant) on recovery
-- **Real exception recovery** — `fault` triggers `ud2` → #UD exception → watchdog → recovery (no halt)
-- Watchdog recovery now shows crash count and last crash reason (`info` command)
-- `crash-vfs` / `crash-net` trigger specific crash reasons → AI picks matching action
-- Recovery actions actually execute: `reset_vfs` purges VFS, `reset_network` resets TCP+DHCP
+### Progressive module hardening
+- **4 modules** (v1→v4) with per-crash-type blocking instead of all-or-nothing
+- v1: all crashable → v2: blocks shell → v3: blocks vfs → v4: blocks all software crashes
+- Each crash type auto-upgrades to the module that blocks it
+- `fault` (real CPU exception) always fires regardless of module version
+
+### Self-healing
+- AI daemon classifies crashes into 4 safe recovery actions
+- `reset_vfs` actually purges VFS, `reset_network` resets TCP+DHCP
+- Real exception recovery — `fault` triggers `ud2` → ISR → watchdog → recovery (no halt)
+- `crash-vfs` / `crash-net` trigger specific crash types → AI picks matching action
+
+### New commands
+- `stat` — dashboard showing module, crashes, upgrades, network status
+- `demo` — prints self-healing walkthrough
+- `fault` — triggers real CPU exception (recoverable)
+- Serial input — commands work via QEMU serial port
 
 ### Testing
-- `./scripts/boot-check.sh` — one command builds + boots in QEMU + confirms shell appears
+- `./scripts/boot-check.sh` — one-command QEMU boot verification
+- `./scripts/demo-test.py` — 8 automated self-healing checks (all pass)
 
 ### Cleanup
-- All CPUMAIN branding renamed to AionOS
-- Build artifacts (`.zig-cache/`, `zig-out/`, ISOs) removed from git tracking
-- README rewritten — every claim points to real source files or a demo you can run
+- CPUMAIN → AionOS branding
+- Build artifacts removed from git
+- Honest README — every claim points to source or demo
 
 ---
 

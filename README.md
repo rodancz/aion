@@ -18,24 +18,20 @@ and the kernel swaps in a working module. No reboot needed.
 
 ```bash
 ./scripts/boot-check.sh     # Builds, boots in QEMU, confirms shell appears
-./scripts/demo-test.py      # Automated full demo — all self-healing checks
+./scripts/demo-test.py      # 8 automated checks — progressive hardening
 ```
 
 In the QEMU shell, try this:
 
 ```
-aion> crash-vfs      # Filesystem crash (v1 is crashable)
-[AI] Local: reset_vfs
-[RECOVERY] Purging VFS...     # VFS actually wiped
-[L3] Module upgraded to: layer3_v2
-aion> crash          # Now blocked — v2 is crash-resistant
-[L3] Module layer3_v2 is crash-resistant — crash ignored
-aion> crash-net      # Also blocked by v2
-[L3] Module layer3_v2 is crash-resistant — crash ignored
-aion> fault          # Real CPU exception (ud2) — always fires!
-=== FAULT ===
-[AI] Executing recovery: restart_layer3
-aion> info           # Crashes: 2, Module: layer3_v2 (hardened)
+aion> crash          # v1: crash kills L3 -> recovery -> v1->v2 (shell blocked)
+aion> crash          # v2 blocks it: "blocks this crash type — ignored"
+aion> crash-vfs      # v2: vfs still open -> recovery -> v2->v3 (vfs blocked)
+aion> crash-vfs      # v3 blocks it
+aion> crash-net      # v3: net still open -> recovery -> v3->v4 (all blocked)
+aion> crash-net      # v4 blocks it
+aion> fault          # Real CPU exception (ud2) — always fires, bypasses modules
+aion> stat           # Dashboard: module v4, 3 crashes, 3 upgrades
 ```
 
 ## Architecture
