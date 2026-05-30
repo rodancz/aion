@@ -220,7 +220,22 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
                     console.write_str(aidaemon.action_name(action));
                     // Execute recovery action
                     switch (action) {
-                        .restart_layer3, .reset_vfs, .reset_network => {
+                        .restart_layer3 => {
+                            l2.upgrade_module();
+                            wd.reset();
+                            l2.restart();
+                        },
+                        .reset_vfs => {
+                            console.write_str("[RECOVERY] Purging VFS...");
+                            vfs.init();
+                            l2.upgrade_module();
+                            wd.reset();
+                            l2.restart();
+                        },
+                        .reset_network => {
+                            console.write_str("[RECOVERY] Resetting TCP + DHCP...");
+                            tcp.init();
+                            dhcp.start();
                             l2.upgrade_module();
                             wd.reset();
                             l2.restart();

@@ -6,11 +6,12 @@ var tick_count: u64 = 0;
 
 pub fn exception_handler(int_num: u64, err_code: u64) void {
     _ = err_code;
+    if (wd.is_recovering()) return;
     serial.write_str("=== FAULT ===");
     serial.write_str("Vector: ");
     write_num(int_num);
+    wd.begin_recovery();
     wd.report_crash("exception");
-    while (true) { asm volatile ("hlt"); }
 }
 
 pub fn irq_handler(int_num: u64) void {

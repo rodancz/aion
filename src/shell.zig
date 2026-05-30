@@ -18,6 +18,9 @@ pub fn process(line: []const u8) bool {
     if (str_eq(line, "info")) { return do_info(); }
     if (str_eq(line, "who")) { return do_who(); }
     if (str_eq(line, "crash")) { l2.force_crash(); return false; }
+    if (str_eq(line, "crash-vfs")) { l2.crash_with_reason("vfs-filesystem-corruption"); return false; }
+    if (str_eq(line, "crash-net")) { l2.crash_with_reason("network-tcp-timeout"); return false; }
+    if (str_eq(line, "fault")) { do_fault(); return false; }
     if (str_eq(line, "rebuild")) { console.write_str("Recovery: Layer 3 is ACTIVE"); }
     if (str_eq(line, "modules")) { do_modules(); return true; }
     if (str_eq(line, "upgrade")) { l2.upgrade_module(); return true; }
@@ -56,7 +59,7 @@ fn do_help() bool {
     console.write_str("FILES:  ls  cd  mkdir  cat  write  rm  edit");
     console.write_str("DISK:   storage  save  load");
     console.write_str("SYS:    info  who  mem  uptime  ver  clear  logo  reboot");
-    console.write_str("L3:     modules  upgrade  crash  rebuild");
+    console.write_str("L3:     modules  upgrade  crash  crash-vfs  crash-net  rebuild");
     console.write_str("NET:    net  ip  ai");
     console.write_str("");
     return true;
@@ -106,6 +109,9 @@ fn do_info() bool {
     console.write_str("  Watchdog: Armed (100Hz)");
     if (dhcp.config.configured) console.write_str("  DHCP:     Configured") else console.write_str("  DHCP:     Not configured");
     return true;
+}
+fn do_fault() void {
+    asm volatile ("ud2"); // triggers #UD (vector 6) — real exception
 }
 fn do_pci() void {
     const pci_mod = @import("bus/pci.zig");

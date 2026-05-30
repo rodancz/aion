@@ -83,6 +83,10 @@ pub fn upgrade_module() void {
 }
 
 pub fn force_crash() void {
+    crash_with_reason("shell-requested");
+}
+
+pub fn crash_with_reason(reason: []const u8) void {
     if (!l2_alive) return;
     if (!MODULES[active_module_idx].can_crash) {
         console.write_str("[L3] Module ");
@@ -91,7 +95,7 @@ pub fn force_crash() void {
         return;
     }
     console.write_str("");
-    console.write_str("*** LAYER 3 CRASH (user-requested) ***");
-    wd.report_crash("shell-requested");
+    console.write_str("*** LAYER 3 CRASH ***");
+    wd.report_crash(reason);
     l2_alive = false;
 }

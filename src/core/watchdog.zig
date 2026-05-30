@@ -85,10 +85,21 @@ pub fn reset() void {
     layer3_crashed = false;
     ticks_since_heartbeat = 0;
     crash_ticks = 0;
+    recovering = false;
 }
 
 pub fn get_crash_count() u64 {
     return crash_count;
+}
+
+var recovering: bool = false;
+
+pub fn is_recovering() bool {
+    return recovering;
+}
+
+pub fn begin_recovery() void {
+    recovering = true;
 }
 
 pub fn get_last_crash() []const u8 {

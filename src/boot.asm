@@ -273,6 +273,11 @@ except_common:
     extern exception_handler
     call exception_handler
 
+    cmp qword [rsp + 15 * 8], 6
+    jne .skip_rip_fix
+    add qword [rsp + 17 * 8], 2
+.skip_rip_fix:
+
     pop rax
     pop rbx
     pop rcx
