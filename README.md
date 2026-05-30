@@ -17,33 +17,25 @@ and the kernel swaps in a working module. No reboot needed.
 ## Proof it works
 
 ```bash
-./scripts/boot-check.sh    # Builds, boots in QEMU, confirms shell appears
+./scripts/boot-check.sh     # Builds, boots in QEMU, confirms shell appears
+./scripts/demo-test.py      # Automated full demo — all self-healing checks
 ```
 
 In the QEMU shell, try this:
 
 ```
-aion> crash          # Kills Layer 3
-[AI] Crash report received...
-[AI] Local: restart_layer3
-[AI] Executing recovery: restart_layer3
+aion> crash-vfs      # Filesystem crash (v1 is crashable)
+[AI] Local: reset_vfs
+[RECOVERY] Purging VFS...     # VFS actually wiped
 [L3] Module upgraded to: layer3_v2
-[L3] Layer 3 restarted (module: layer3_v2)
-aion> crash          # Try again
+aion> crash          # Now blocked — v2 is crash-resistant
 [L3] Module layer3_v2 is crash-resistant — crash ignored
-aion> info           # Check: module v2, 1 crash, 1 upgrade
-
-aion> crash-vfs      # Filesystem crash
-[RECOVERY] Purging VFS...   # VFS actually gets wiped
-aion> ls             # Empty — files are gone
-
-aion> crash-net      # Network crash
-[RECOVERY] Resetting TCP + DHCP...
-
-aion> fault          # Triggers REAL CPU exception (ud2)
-[AI] Crash report: exception
-[AI] Executing recovery...
-aion>                # Shell comes back — kernel didn't halt
+aion> crash-net      # Also blocked by v2
+[L3] Module layer3_v2 is crash-resistant — crash ignored
+aion> fault          # Real CPU exception (ud2) — always fires!
+=== FAULT ===
+[AI] Executing recovery: restart_layer3
+aion> info           # Crashes: 2, Module: layer3_v2 (hardened)
 ```
 
 ## Architecture

@@ -8,6 +8,7 @@ const pic = @import("arch/x86_64/pic.zig");
 const pit = @import("drivers/pit.zig");
 const pmm = @import("core/pmm.zig");
 const kmalloc = @import("core/kmalloc.zig");
+const serial = @import("drivers/serial.zig");
 const wd = @import("core/watchdog.zig");
 const kbd = @import("drivers/keyboard.zig");
 const shell = @import("shell.zig");
@@ -249,8 +250,15 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
             }
         }
 
-        // Keyboard input
+        // Keyboard + Serial input
+        var input_buf: [256]u8 = undefined;
         if (kbd.read_line()) |line| {
+            if (line.len > 0) {
+                _ = shell.process(line);
+            }
+            prompt_needed = true;
+        }
+        if (serial.read_line(input_buf[0..])) |line| {
             if (line.len > 0) {
                 _ = shell.process(line);
             }

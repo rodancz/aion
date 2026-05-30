@@ -33,3 +33,34 @@ pub fn write_str(s: []const u8) void {
     write_byte('\r');
     write_byte('\n');
 }
+
+fn data_ready() bool {
+    return (asm_inb(COM1 + 5) & 0x01) != 0;
+}
+
+pub fn read_byte() ?u8 {
+    if (!initialized or !data_ready()) return null;
+    return asm_inb(COM1);
+}
+
+var line_buf: [256]u8 = [_]u8{0} ** 256;
+var line_len: usize = 0;
+
+pub fn read_line(buf: []u8) ?[]const u8 {
+    if (!initialized) return null;
+    while (line_len < buf.len - 1) {
+        const byte = read_byte() orelse break;
+        if (byte == '\r' or byte == '\n') {
+            if (line_len == 0) continue;
+            buf[line_len] = 0;
+            const result = buf[0..line_len];
+            line_len = 0;
+            return result;
+        }
+        if (byte >= 0x20 and byte < 0x7F) {
+            buf[line_len] = byte;
+            line_len += 1;
+        }
+    }
+    return null;
+}

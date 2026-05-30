@@ -26,9 +26,15 @@ fn tick_v2() void {
     wd.layer3_beat();
 }
 
+fn tick_v3() void {
+    l2_count += 1;
+    wd.layer3_beat();
+}
+
 pub const MODULES = [_]Module{
     .{ .name = "layer3_v1", .version = 1, .tick_fn = &tick_v1, .can_crash = true },
     .{ .name = "layer3_v2", .version = 2, .tick_fn = &tick_v2, .can_crash = false },
+    .{ .name = "layer3_v3", .version = 3, .tick_fn = &tick_v3, .can_crash = false },
 };
 
 pub fn get_module() *const Module {

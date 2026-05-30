@@ -21,6 +21,7 @@ pub fn process(line: []const u8) bool {
     if (str_eq(line, "crash-vfs")) { l2.crash_with_reason("vfs-filesystem-corruption"); return false; }
     if (str_eq(line, "crash-net")) { l2.crash_with_reason("network-tcp-timeout"); return false; }
     if (str_eq(line, "fault")) { do_fault(); return false; }
+    if (str_eq(line, "demo")) { do_demo(); return true; }
     if (str_eq(line, "rebuild")) { console.write_str("Recovery: Layer 3 is ACTIVE"); }
     if (str_eq(line, "modules")) { do_modules(); return true; }
     if (str_eq(line, "upgrade")) { l2.upgrade_module(); return true; }
@@ -59,7 +60,7 @@ fn do_help() bool {
     console.write_str("FILES:  ls  cd  mkdir  cat  write  rm  edit");
     console.write_str("DISK:   storage  save  load");
     console.write_str("SYS:    info  who  mem  uptime  ver  clear  logo  reboot");
-    console.write_str("L3:     modules  upgrade  crash  crash-vfs  crash-net  rebuild");
+    console.write_str("L3:     modules  upgrade  crash  crash-vfs  crash-net  fault  demo");
     console.write_str("NET:    net  ip  ai");
     console.write_str("");
     return true;
@@ -112,6 +113,20 @@ fn do_info() bool {
 }
 fn do_fault() void {
     asm volatile ("ud2"); // triggers #UD (vector 6) — real exception
+}
+fn do_demo() void {
+    console.write_str("=== Self-Healing Demo ===");
+    console.write_str("1. crash     — kill Layer 3, watch recovery");
+    console.write_str("2. crash     — v2 blocks it now");
+    console.write_str("3. crash-vfs — filesystem crash -> VFS purged");
+    console.write_str("4. crash-net — network crash -> TCP reset");
+    console.write_str("5. fault     — real CPU exception -> recovery");
+    console.write_str("6. info      — see crash count + module version");
+    console.write_str("7. modules   — list all Layer 3 modules");
+    console.write_str("");
+    console.write_str("Persistence demo:");
+    console.write_str("  write x.txt hello  ->  save x.txt  ->  crash-vfs");
+    console.write_str("  -> ls (empty)  ->  load x.txt  ->  cat x.txt");
 }
 fn do_pci() void {
     const pci_mod = @import("bus/pci.zig");
