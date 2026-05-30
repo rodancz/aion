@@ -5,7 +5,10 @@
 ### Self-healing (real, not fake)
 - AI daemon now **classifies** crashes into 4 safe recovery actions instead of pretending to generate patches
 - **Module replacement** — Layer 3 v1 (crashable) auto-swaps to v2 (crash-resistant) on recovery
+- **Real exception recovery** — `fault` triggers `ud2` → #UD exception → watchdog → recovery (no halt)
 - Watchdog recovery now shows crash count and last crash reason (`info` command)
+- `crash-vfs` / `crash-net` trigger specific crash reasons → AI picks matching action
+- Recovery actions actually execute: `reset_vfs` purges VFS, `reset_network` resets TCP+DHCP
 
 ### Testing
 - `./scripts/boot-check.sh` — one command builds + boots in QEMU + confirms shell appears

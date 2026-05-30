@@ -32,6 +32,18 @@ aion> crash          # Kills Layer 3
 aion> crash          # Try again
 [L3] Module layer3_v2 is crash-resistant — crash ignored
 aion> info           # Check: module v2, 1 crash, 1 upgrade
+
+aion> crash-vfs      # Filesystem crash
+[RECOVERY] Purging VFS...   # VFS actually gets wiped
+aion> ls             # Empty — files are gone
+
+aion> crash-net      # Network crash
+[RECOVERY] Resetting TCP + DHCP...
+
+aion> fault          # Triggers REAL CPU exception (ud2)
+[AI] Crash report: exception
+[AI] Executing recovery...
+aion>                # Shell comes back — kernel didn't halt
 ```
 
 ## Architecture
@@ -54,7 +66,7 @@ Microkernel (stable)
 FILES:  ls  cd  mkdir  cat  write  rm  edit  echo
 DISK:   save  load  storage
 SYS:    info  who  mem  uptime  ver  clear  logo  reboot
-L3:     modules  upgrade  crash  rebuild
+L3:     modules  upgrade  crash  crash-vfs  crash-net  fault  rebuild
 NET:    net  ip  ai
 PCI:    pci
 ```
