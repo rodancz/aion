@@ -19,6 +19,8 @@ pub fn process(line: []const u8) bool {
     if (str_eq(line, "who")) { return do_who(); }
     if (str_eq(line, "crash")) { l2.force_crash(); return false; }
     if (str_eq(line, "rebuild")) { console.write_str("Recovery: Layer 3 is ACTIVE"); }
+    if (str_eq(line, "modules")) { do_modules(); return true; }
+    if (str_eq(line, "upgrade")) { l2.upgrade_module(); return true; }
     else if (str_eq(line, "mem")) { do_mem(); }
     else if (str_eq(line, "clear")) { console.clear(); }
     else if (str_eq(line, "logo")) { show_logo(); }
@@ -54,8 +56,8 @@ fn do_help() bool {
     console.write_str("FILES:  ls  cd  mkdir  cat  write  rm  edit");
     console.write_str("DISK:   storage  save  load");
     console.write_str("SYS:    info  who  mem  uptime  ver  clear  logo  reboot");
+    console.write_str("L3:     modules  upgrade  crash  rebuild");
     console.write_str("NET:    net  ip  ai");
-    console.write_str("DEMO:   crash  rebuild");
     console.write_str("");
     return true;
 }
@@ -63,18 +65,32 @@ fn do_info() bool {
     console.write_str("AionOS v0.1.0-alpha — System Status");
     console.write_str("  Layer 3: ");
     if (wd.is_healthy()) console.write_str("    ACTIVE") else console.write_str("    CRASHED");
+    console.write_str("  Module:   ");
+    console.write_str(l2.get_module_name());
+    console.write_str("  Upgrades: ");
+    {
+        const uc = l2.get_upgrade_count();
+        const digits = "0123456789";
+        var ubuf: [20]u8 = undefined;
+        var un: u64 = uc;
+        var ui: usize = 0;
+        if (un == 0) { ubuf[0] = '0'; ui = 1; }
+        while (un > 0 and ui < 20) : (un /= 10) { ubuf[ui] = digits[@intCast(un % 10)]; ui += 1; }
+        var us: usize = 0;
+        var ue: usize = ui;
+        while (us < ue) : ({ us += 1; ue -= 1; }) { const ut = ubuf[us]; ubuf[us] = ubuf[ue-1]; ubuf[ue-1] = ut; }
+        console.write_inline(ubuf[0..ui]);
+    }
     const cc = wd.get_crash_count();
     if (cc > 0) {
+        console.write_str("");
+        console.write_str("  Crashes:  ");
         const digits = "0123456789";
         var buf: [20]u8 = undefined;
         var n: u64 = cc;
         var i: usize = 0;
         if (n == 0) { buf[0] = '0'; i = 1; }
-        while (n > 0 and i < 20) : (n /= 10) {
-            buf[i] = digits[@intCast(n % 10)];
-            i += 1;
-        }
-        // reverse
+        while (n > 0 and i < 20) : (n /= 10) { buf[i] = digits[@intCast(n % 10)]; i += 1; }
         var s: usize = 0;
         var e: usize = i;
         while (s < e) : ({ s += 1; e -= 1; }) {
@@ -82,11 +98,10 @@ fn do_info() bool {
             buf[s] = buf[e - 1];
             buf[e - 1] = tmp;
         }
-        const num_str = buf[0..i];
-        console.write_str("  Crashes:  ");
-        console.write_str(num_str);
+        console.write_inline(buf[0..i]);
+        console.write_str("");
         console.write_str("  Last:     ");
-        console.write_str(wd.get_last_crash());
+        console.write_inline(wd.get_last_crash());
     }
     console.write_str("  Watchdog: Armed (100Hz)");
     if (dhcp.config.configured) console.write_str("  DHCP:     Configured") else console.write_str("  DHCP:     Not configured");
@@ -96,6 +111,22 @@ fn do_pci() void {
     const pci_mod = @import("bus/pci.zig");
     const count = pci_mod.scan_all();
     if (count > 0) console.write_str("PCI devices found") else console.write_str("No PCI devices");
+}
+fn do_modules() void {
+    const active = l2.get_module();
+    for (l2.MODULES) |mod| {
+        if (active.version == mod.version) {
+            console.write_inline("  > ");
+        } else {
+            console.write_inline("    ");
+        }
+        console.write_inline(mod.name);
+        if (active.version == mod.version) {
+            console.write_str(" (active)");
+        } else {
+            console.write_str("");
+        }
+    }
 }
 fn do_who() bool {
     console.write_str("AionOS — AI self-healing microkernel.");

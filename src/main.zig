@@ -221,6 +221,7 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
                     // Execute recovery action
                     switch (action) {
                         .restart_layer3, .reset_vfs, .reset_network => {
+                            l2.upgrade_module();
                             wd.reset();
                             l2.restart();
                         },
