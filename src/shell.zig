@@ -122,9 +122,9 @@ fn do_net() void {
 }
 fn do_ai() void {
     if (aidaemon.config.enabled) console.write_str("AI: Configured")
-    else {
-        console.write_str("AI: Not configured");
-    }
+    else console.write_str("AI: Not configured (local classification)");
+    console.write_str("  Last action: ");
+    console.write_str(aidaemon.action_name(aidaemon.get_action()));
     const cc = wd.get_crash_count();
     if (cc > 0) {
         console.write_str("  Crashes handled: ");

@@ -204,7 +204,8 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
             aidaemon.tick();
             if (ipc.queue_recv(q)) |msg| {
                 if (msg.msg_type == ipc.MsgType.rebuild_cmd) {
-                    console.write_str("[WATCHDOG] Recovery complete (#");
+                    const action = aidaemon.get_action();
+                    console.write_str("[WATCHDOG] Recovery (#");
                     const digits = "0123456789";
                     var buf2: [20]u8 = undefined;
                     var cn: u64 = wd.get_crash_count();
@@ -215,9 +216,18 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
                     var ce: usize = ci;
                     while (cs < ce) : ({ cs += 1; ce -= 1; }) { const ct = buf2[cs]; buf2[cs] = buf2[ce-1]; buf2[ce-1] = ct; }
                     console.write_inline(buf2[0..ci]);
-                    console.write_str("). Restarting Layer 3...");
-                    wd.reset();
-                    l2.restart();
+                    console.write_str("): ");
+                    console.write_str(aidaemon.action_name(action));
+                    // Execute recovery action
+                    switch (action) {
+                        .restart_layer3, .reset_vfs, .reset_network => {
+                            wd.reset();
+                            l2.restart();
+                        },
+                        .no_action => {
+                            wd.reset();
+                        },
+                    }
                     prompt_needed = true;
                 }
             }
