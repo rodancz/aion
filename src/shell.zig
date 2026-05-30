@@ -17,11 +17,12 @@ pub fn process(line: []const u8) bool {
     if (str_eq(line, "help")) { return do_help(); }
     if (str_eq(line, "info")) { return do_info(); }
     if (str_eq(line, "who")) { return do_who(); }
-    if (str_eq(line, "crash")) { l2.force_crash(); return false; }
-    if (str_eq(line, "crash-vfs")) { l2.crash_with_reason("vfs-filesystem-corruption"); return false; }
-    if (str_eq(line, "crash-net")) { l2.crash_with_reason("network-tcp-timeout"); return false; }
+    if (str_eq(line, "crash")) { l2.crash_with_reason("shell-requested", .shell); return false; }
+    if (str_eq(line, "crash-vfs")) { l2.crash_with_reason("vfs-filesystem-corruption", .vfs); return false; }
+    if (str_eq(line, "crash-net")) { l2.crash_with_reason("network-tcp-timeout", .network); return false; }
     if (str_eq(line, "fault")) { do_fault(); return false; }
     if (str_eq(line, "demo")) { do_demo(); return true; }
+    if (str_eq(line, "stat")) { do_stat(); return true; }
     if (str_eq(line, "rebuild")) { console.write_str("Recovery: Layer 3 is ACTIVE"); }
     if (str_eq(line, "modules")) { do_modules(); return true; }
     if (str_eq(line, "upgrade")) { l2.upgrade_module(); return true; }
@@ -60,7 +61,7 @@ fn do_help() bool {
     console.write_str("FILES:  ls  cd  mkdir  cat  write  rm  edit");
     console.write_str("DISK:   storage  save  load");
     console.write_str("SYS:    info  who  mem  uptime  ver  clear  logo  reboot");
-    console.write_str("L3:     modules  upgrade  crash  crash-vfs  crash-net  fault  demo");
+    console.write_str("L3:     modules  upgrade  crash  crash-vfs  crash-net  fault  stat  demo");
     console.write_str("NET:    net  ip  ai");
     console.write_str("");
     return true;
@@ -112,7 +113,49 @@ fn do_info() bool {
     return true;
 }
 fn do_fault() void {
-    asm volatile ("ud2"); // triggers #UD (vector 6) — real exception
+    asm volatile ("ud2");
+}
+fn do_stat() void {
+    console.write_str("+----------------+------------------------------+");
+    console.write_str("| AionOS Status  | v0.1.1-alpha                 |");
+    console.write_str("+----------------+------------------------------+");
+    console.write_str("  Layer 3:       ");
+    if (wd.is_healthy()) console.write_inline("ACTIVE") else console.write_inline("CRASHED");
+    console.write_str("");
+    console.write_str("  Module:        ");
+    console.write_inline(l2.get_module_name());
+    console.write_str("");
+    console.write_str("  Upgrades:      ");
+    var buf: [20]u8 = undefined;
+    var n: u64 = l2.get_upgrade_count();
+    var i: usize = 0;
+    if (n == 0) { buf[0] = '0'; i = 1; }
+    while (n > 0 and i < 20) : (n /= 10) { buf[i] = "0123456789"[@intCast(n % 10)]; i += 1; }
+    var s: usize = 0; var e: usize = i;
+    while (s < e) : ({ s += 1; e -= 1; }) { const t = buf[s]; buf[s] = buf[e-1]; buf[e-1] = t; }
+    console.write_inline(buf[0..i]);
+    console.write_str("");
+    console.write_str("  Crashes:       ");
+    n = wd.get_crash_count();
+    i = 0;
+    if (n == 0) { buf[0] = '0'; i = 1; }
+    while (n > 0 and i < 20) : (n /= 10) { buf[i] = "0123456789"[@intCast(n % 10)]; i += 1; }
+    s = 0; e = i;
+    while (s < e) : ({ s += 1; e -= 1; }) { const t = buf[s]; buf[s] = buf[e-1]; buf[e-1] = t; }
+    console.write_inline(buf[0..i]);
+    console.write_str("");
+    if (wd.get_crash_count() > 0) {
+        console.write_str("  Last crash:    ");
+        console.write_inline(wd.get_last_crash());
+        console.write_str("");
+    }
+    console.write_str("  Watchdog:      Armed (100Hz)");
+    if (dhcp.config.configured) {
+        console.write_str("  Network:       DHCP OK");
+    } else {
+        console.write_str("  Network:       Not configured");
+    }
+    console.write_str("+----------------+------------------------------+");
 }
 fn do_demo() void {
     console.write_str("=== Self-Healing Demo ===");
