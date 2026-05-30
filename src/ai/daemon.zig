@@ -200,7 +200,7 @@ fn build_crash_json() usize {
     for (prefix) |c| { buf[i] = c; i += 1; }
     const model = ptr_to_slice(&config.model);
     for (model) |c| { buf[i] = c; i += 1; }
-    const mid = "\",\"messages\":[{\"role\":\"user\",\"content\":\"CPUMAIN microkernel Layer 3 crashed. Reason: ";
+    const mid = "\",\"messages\":[{\"role\":\"user\",\"content\":\"AionOS microkernel Layer 3 crashed. Reason: ";
     for (mid) |c| { buf[i] = c; i += 1; }
     const reason = ptr_to_slice(&crash_reason);
     for (reason) |c| { buf[i] = c; i += 1; }

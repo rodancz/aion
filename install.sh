@@ -1,5 +1,5 @@
 #!/bin/bash
-# CPUMAIN Installer — installs to a disk for native boot
+# AionOS Installer — installs to a disk for native boot
 set -e
 
 RED='\033[0;31m'
@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}CPUMAIN AI OS Installer v0.6.0${NC}"
+echo -e "${CYAN}AionOS AI OS Installer v0.1.0${NC}"
 echo ""
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -15,9 +15,9 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-ISO="$(dirname "$0")/cpumain.iso"
+ISO="$(dirname "$0")/aion.iso"
 if [ ! -f "$ISO" ]; then
-    echo -e "${RED}cpumain.iso not found. Run ./run.sh first.${NC}"
+    echo -e "${RED}aion.iso not found. Run ./run.sh first.${NC}"
     exit 1
 fi
 
@@ -41,10 +41,10 @@ if [ "$CONFIRM" != "YES" ]; then
     exit 0
 fi
 
-echo "Writing CPUMAIN to $TARGET..."
+echo "Writing AionOS to $TARGET..."
 dd if="$ISO" of="$TARGET" bs=1M status=progress conv=fsync
 sync
 
 echo ""
-echo -e "${GREEN}CPUMAIN installed to $TARGET${NC}"
+echo -e "${GREEN}AionOS installed to $TARGET${NC}"
 echo "Boot from this disk in UEFI mode (disable Secure Boot)."
