@@ -24,20 +24,15 @@ pub fn tick() void {
 }
 
 pub fn restart() void {
-    console.write_str("  [AI] Analyzing crash dump...");
-    console.write_str("  [AI] Generating kernel patch...");
-    console.write_str("  [AI] Verifying patch integrity...");
-    console.write_str("  [AI] Hot-patching Layer 3 kernel...");
     l2_alive = true;
     l2_count = 0;
-    console.write_str("  [AI] Layer 3 kernel rebuilt and restarted");
+    console.write_str("[L3] Layer 3 restarted after crash");
 }
 
 pub fn force_crash() void {
     if (!l2_alive) return;
     console.write_str("");
-    console.write_str("*** LAYER 3 KERNEL PANIC (user-requested) ***");
-    console.write_str("  Fault: shell-requested crash");
+    console.write_str("*** LAYER 3 CRASH (user-requested) ***");
     wd.report_crash("shell-requested");
     l2_alive = false;
 }

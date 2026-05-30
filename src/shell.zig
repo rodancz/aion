@@ -18,7 +18,7 @@ pub fn process(line: []const u8) bool {
     if (str_eq(line, "info")) { return do_info(); }
     if (str_eq(line, "who")) { return do_who(); }
     if (str_eq(line, "crash")) { l2.force_crash(); return false; }
-    if (str_eq(line, "rebuild")) { console.write_str("Rebuild: 1/4..2/4..3/4..4/4 OK"); }
+    if (str_eq(line, "rebuild")) { console.write_str("Recovery: Layer 3 is ACTIVE"); }
     else if (str_eq(line, "mem")) { do_mem(); }
     else if (str_eq(line, "clear")) { console.clear(); }
     else if (str_eq(line, "logo")) { show_logo(); }
@@ -63,6 +63,31 @@ fn do_info() bool {
     console.write_str("AionOS v0.1.0-alpha — System Status");
     console.write_str("  Layer 3: ");
     if (wd.is_healthy()) console.write_str("    ACTIVE") else console.write_str("    CRASHED");
+    const cc = wd.get_crash_count();
+    if (cc > 0) {
+        const digits = "0123456789";
+        var buf: [20]u8 = undefined;
+        var n: u64 = cc;
+        var i: usize = 0;
+        if (n == 0) { buf[0] = '0'; i = 1; }
+        while (n > 0 and i < 20) : (n /= 10) {
+            buf[i] = digits[@intCast(n % 10)];
+            i += 1;
+        }
+        // reverse
+        var s: usize = 0;
+        var e: usize = i;
+        while (s < e) : ({ s += 1; e -= 1; }) {
+            const tmp = buf[s];
+            buf[s] = buf[e - 1];
+            buf[e - 1] = tmp;
+        }
+        const num_str = buf[0..i];
+        console.write_str("  Crashes:  ");
+        console.write_str(num_str);
+        console.write_str("  Last:     ");
+        console.write_str(wd.get_last_crash());
+    }
     console.write_str("  Watchdog: Armed (100Hz)");
     if (dhcp.config.configured) console.write_str("  DHCP:     Configured") else console.write_str("  DHCP:     Not configured");
     return true;
@@ -98,8 +123,30 @@ fn do_net() void {
 fn do_ai() void {
     if (aidaemon.config.enabled) console.write_str("AI: Configured")
     else {
-        console.write_str("AI: Not configured (heuristic fallback)");
-        console.write_str("Set: ai:endpoint URL, ai:key KEY, ai:model MODEL");
+        console.write_str("AI: Not configured");
+    }
+    const cc = wd.get_crash_count();
+    if (cc > 0) {
+        console.write_str("  Crashes handled: ");
+        const digits = "0123456789";
+        var buf: [20]u8 = undefined;
+        var n: u64 = cc;
+        var i: usize = 0;
+        if (n == 0) { buf[0] = '0'; i = 1; }
+        while (n > 0 and i < 20) : (n /= 10) {
+            buf[i] = digits[@intCast(n % 10)];
+            i += 1;
+        }
+        var s: usize = 0;
+        var e: usize = i;
+        while (s < e) : ({ s += 1; e -= 1; }) {
+            const tmp = buf[s];
+            buf[s] = buf[e - 1];
+            buf[e - 1] = tmp;
+        }
+        console.write_str(buf[0..i]);
+    } else {
+        console.write_str("  Crashes: 0");
     }
 }
 fn do_reboot() void {

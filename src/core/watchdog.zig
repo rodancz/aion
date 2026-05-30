@@ -10,6 +10,8 @@ var armed: bool = false;
 var l2_zone_start: usize = 0;
 var l2_zone_end: usize = 0;
 var ai_inbox: ?*ipc.Queue = null;
+var last_crash: [64]u8 = [_]u8{0} ** 64;
+var last_crash_len: usize = 0;
 
 pub fn set_ai_queue(q: *ipc.Queue) void {
     ai_inbox = q;
@@ -60,15 +62,17 @@ pub fn report_crash(reason: []const u8) void {
     crash_ticks = 0;
     crash_count += 1;
 
+    const copy_len = if (reason.len < 63) reason.len else 63;
+    for (reason[0..copy_len], 0..) |c, j| { last_crash[j] = c; }
+    last_crash[copy_len] = 0;
+    last_crash_len = copy_len;
+
     if (ai_inbox) |q| {
         var msg: ipc.Message = undefined;
         msg.msg_type = ipc.MsgType.crash_report;
         msg.source = 0;
         msg.data = [_]u8{0} ** 62;
-        const copy_len = if (reason.len < 62) reason.len else 62;
-        for (reason[0..copy_len], 0..) |c, j| {
-            msg.data[j] = c;
-        }
+        for (reason[0..copy_len], 0..) |c, j| { msg.data[j] = c; }
         _ = ipc.queue_send(q, msg);
     }
 }
@@ -85,4 +89,8 @@ pub fn reset() void {
 
 pub fn get_crash_count() u64 {
     return crash_count;
+}
+
+pub fn get_last_crash() []const u8 {
+    return last_crash[0..last_crash_len];
 }

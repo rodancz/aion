@@ -204,7 +204,18 @@ export fn kernel_main(magic: u32, mbi_addr: u32) noreturn {
             aidaemon.tick();
             if (ipc.queue_recv(q)) |msg| {
                 if (msg.msg_type == ipc.MsgType.rebuild_cmd) {
-                    console.write_str("[WATCHDOG] AI rebuild complete. Restarting Layer 3...");
+                    console.write_str("[WATCHDOG] Recovery complete (#");
+                    const digits = "0123456789";
+                    var buf2: [20]u8 = undefined;
+                    var cn: u64 = wd.get_crash_count();
+                    var ci: usize = 0;
+                    if (cn == 0) { buf2[0] = '0'; ci = 1; }
+                    while (cn > 0 and ci < 20) : (cn /= 10) { buf2[ci] = digits[@intCast(cn % 10)]; ci += 1; }
+                    var cs: usize = 0;
+                    var ce: usize = ci;
+                    while (cs < ce) : ({ cs += 1; ce -= 1; }) { const ct = buf2[cs]; buf2[cs] = buf2[ce-1]; buf2[ce-1] = ct; }
+                    console.write_inline(buf2[0..ci]);
+                    console.write_str("). Restarting Layer 3...");
                     wd.reset();
                     l2.restart();
                     prompt_needed = true;

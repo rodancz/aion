@@ -1,6 +1,7 @@
 const console = @import("../drivers/console.zig");
 const ipc = @import("../ipc/queue.zig");
 const http = @import("../net/http.zig");
+const wd = @import("../core/watchdog.zig");
 
 pub const AiConfig = struct {
     endpoint: [256]u8,
@@ -129,6 +130,8 @@ pub fn tick() void {
                     crash_reason[j] = msg.data[j];
                 }
                 console.write_str("[AI] Crash report received, analyzing...");
+                console.write_str("[AI] Reason: ");
+                console.write_str(ptr_to_slice(&crash_reason));
             }
         }
         return;
@@ -175,11 +178,11 @@ pub fn tick() void {
         return;
     }
 
-    // Step 4: Deploy fix
+    // Step 4: Recover
     if (state == .deploying) {
         state_ticks += 1;
-        if (state_ticks == 5) {
-            console.write_str("[AI] Deploying patch... OK");
+        if (state_ticks == 3) {
+            console.write_str("[AI] Recovery: resetting Layer 3 state");
             var signal: ipc.Message = undefined;
             signal.msg_type = ipc.MsgType.rebuild_cmd;
             signal.source = 0;
